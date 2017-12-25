@@ -1,0 +1,2 @@
+# Nmap 7.60 scan initiated Mon Dec 25 01:26:57 2017 as: nmap -sS -oG /root/gitRepos/pushToDatabase/messingWithDatabase/tempFiles/nmap.out www.pages.myteksi.net
+# Nmap done at Mon Dec 25 01:27:00 2017 -- 1 IP address (0 hosts up) scanned in 3.23 seconds
