@@ -209,6 +209,17 @@ def select_webAppFromPrograms(conn, scope, cProgram):
         a = cur.fetchone()[0].split(', ')
         return a
 
+def callVirtualHost(domain, dnsLine):
+    ipString = dnsLine.split(':')
+    ipList = []
+    for a in ipString[-1].split(' , '):
+        a = a.strip()
+        ipList.append(a)
+    for a in ipList:
+        print a
+    os.system("gnome-terminal --working-directory=%s"%(virtualHostDiscoveryFolder))
+    print 'Basic usage: --ip={IP ADDRESS} --host={TLD} (--port={port} >> When it\' not 80)'
+
 def callBrutesubs(a):
     try:
         ###I've changed the flow and now it reads the final results from the brutesubs folder
@@ -267,7 +278,9 @@ def returningStatuscode(prompt, domainListLength):
     elif prompt == 'goohak':
         a.append(5)
         a.append(5)
-
+    elif prompt == 'virtualHost':
+        a.append(6)
+        a.append(6)
     else: 
         a.append(-1)
         a.append(prompt)
@@ -742,7 +755,7 @@ def main():
                         print 'X-Frames-Options: '+xframesLine
                         print 'X-Xss-Protection: '+xssProtectionLine
                         print 'X-Content-Type-Options: '+contentTypeLine+'\n'
-                    prompt = returningStatuscode(raw_input('next(n)/info/nc {integer}/go {integer}/checkInt/goohak: '), domainListLength)
+                    prompt = returningStatuscode(raw_input('next(n)/info/nc {integer}/go {integer}/checkInt/goohak/virtualHost: '), domainListLength)
                     if prompt[0] == 0: 
                         ###Continue 
                         print(chr(27) + "[2J")
@@ -802,6 +815,12 @@ def main():
                     if prompt[0] == 5:
                         ###Start goohak on domain
                         subprocess.call(goohakPath+'/goohak '+a,shell=True)
+                    if prompt[0] == 6:
+                        ##Start Virtual Host Discovery
+                        ## a = theDomain
+                        callVirtualHost(a, dnsLine) 
+
+
                     if prompt[0] == -1:
                         print '[-] Provided: '+prompt[1]
                         print '[-] Format wasn\'t understandable --- e.g. nc 8080, info, next'
