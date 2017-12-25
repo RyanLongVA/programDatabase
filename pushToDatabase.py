@@ -8,7 +8,6 @@ from lib.modules.variables import *
 scriptFolder = sys.path[0]
 tempFolder = sys.path[0]+'/tempFiles'   
 changesTXTFolder = sys.path[0]+'/lib/data'
-pdb.set_trace()
 
 ###changes.txt is going to be in sys.path[0]+'/lib/data'
 ###Brutesub start script (brutesubs.sh) needs to be manual changed
