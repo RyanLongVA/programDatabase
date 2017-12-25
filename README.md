@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 # programDatabase
 Installation: On hiatus 
 
@@ -16,4 +14,3 @@ This is how I enumerate through the list domains
     > nc {integer} // connect to a tcp port on that domain with a socket
     > go {integer} // If I need to jump the counter this is what I use
     > checkInt // Checks the internet connection
->>>>>>> 792a3f739917904c2c0dda66c95c9b53f64a72e7
