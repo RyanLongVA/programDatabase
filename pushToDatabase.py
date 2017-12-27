@@ -31,6 +31,11 @@ def findInOut(a, b):
         if item.startswith(b):
             return item.split('^')[1]
 
+def domainFound():
+    pdb.set_trace()
+    ###Checks changes.txt domains to resolve
+    ###For each do a nmap scan, and text results
+    ###Need to change text notification so the data that get's sent is after nmap/resolving/title grab, etc
 def removeByKey(providedKey):
     data = []
     cfile = open(changesTXTFolder+'/changes.txt', 'r')
@@ -218,7 +223,7 @@ def callVirtualHost(domain, dnsLine):
     for a in ipList:
         print a
     os.system("gnome-terminal --working-directory=%s"%(virtualHostDiscoveryFolder))
-    print 'Basic usage: --ip={IP ADDRESS} --host={TLD} (--port={port} >> When it\' not 80)'
+    print 'Basic usage: ruby scan.rb --ip={IP ADDRESS} --host={TLD} (--port={port} >> When it\' not 80)'
 
 def callBrutesubs(a):
     try:

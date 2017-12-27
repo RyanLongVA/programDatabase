@@ -1,3 +1,5 @@
 ##Paths/Database##
 lib/modules/variables.py
 lib/modules/variables.pyc
+lib/data/changes.txt
+tempFiles
