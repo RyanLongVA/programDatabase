@@ -31,10 +31,45 @@ def findInOut(a, b):
         if item.startswith(b):
             return item.split('^')[1]
 
-def domainFound():
-    pdb.set_trace()
-    ###Checks changes.txt domains to resolve
-    ###For each do a nmap scan, and text results
+def domainFound(conn):
+    # subprocess.call('python '+scriptFolder+'/pushToDatabase.py -cc', shell=True)
+    cur = conn.cursor()
+    domainsList = []
+    cfile = open(changesTXTFolder+'/changes.txt', 'r')
+    for a in cfile.readlines():
+        domain = findInOut(a, 'Domain^')
+        program = a.split(' ; ')[1].split('_')[0]
+        domainsList.append(program + ' , '+domain)
+    cfile.close()
+    if intrusiveStatus:
+        for a in domainsList:
+            a = a.split(' , ')
+            program = a[0]
+            domain = a[1]
+            nmapScan = nmapOnDomain(domain, 'normal') ##So far I'm just going to do a normal scan until I can dynamically fluctuate the nmap timeout
+            domainTitle = grabWebTitle(domain)
+            dnsData = grabWebDNS(domain)
+            b = []
+            c = []
+            b.append('`Domain`')
+            c.append('\"'+domain+'\"')
+            if nmapScan:
+                b.append('`Ports`')
+                c.append('\"'+nmapScan+'\"')
+            if domainTitle:
+                b.append('`Title`')
+                c.append('\"'+domainTitle+'\"')
+            if dnsData:
+                b.append('`DNS`')
+                c.append('\"'+dnsData+'\"')
+            d = ', '.join(b)
+            e = ', '.join(c)
+            statem = "INSERT INTO "+program+"_liveWebApp(%s) VALUES (%s)"%(d, e)
+            print statem
+            pdb.set_trace()
+            cur.execute(statem)
+            conn.commit()
+
     ###Need to change text notification so the data that get's sent is after nmap/resolving/title grab, etc
 def removeByKey(providedKey):
     data = []
@@ -166,6 +201,41 @@ def nmapOnDomain(domain, ports):
                 ports.append(c)
     return ' , '.join(ports)
     # Returns open ports
+
+def grabWebTitle(domain):    
+    command = "curl %s -sL -m 5 | tac | tac | awk -vRS=\"</title>\" \'/<title>/{gsub(/.*<title>|"%(domain)+r'\n'+"+/,\"\");print;exit}\'"
+    return subprocess.check_output(command, shell=True)
+
+def grabWebDNS(domain):
+    try: 
+        cdns = []
+        b = socket.gethostbyname_ex(domain)
+        if (b[0] == domain):
+            ###Should be the same... so pretty much a 'A Record'
+            cdns.append(b[0])
+            d = []
+            for c in b[2]:
+                d.append(c)
+            cdns.append(' , '.join(d))
+        else: 
+            for c in b[1]:
+                cdns.append(c)
+            d = []
+            cdns.append(b[0])
+            for c in b[2]:
+                d.append(c)
+            cdns.append(' , '.join(d))
+        ##Add to the beginning... the domain
+        cdns.insert(0, domain)
+        data = ' : '.join(cdns)
+        return data 
+    except Exception,e:
+        if e[0] == -2:
+            print 'Failed: '+domain
+        else: 
+            print e
+            pdb.set_trace()
+               
 
 def cleanTempFolder():
     try:
@@ -401,7 +471,6 @@ def checkLiveWebApp_Domains(conn, tableName, domainArray, outScope):
     cfile.close()
 
 def main(): 
-
     parser = argparse.ArgumentParser(description='databaseActions')
     parser.add_argument('-ap', action='store_true', help='Add new program')
     # parser.add_argument('-aos', help='"Program" Interface to add to out of scope' )
@@ -430,6 +499,7 @@ def main():
     parser.add_argument('--printMe', help='"Program" Print all domains in database for program')
     args = parser.parse_args()
     conn = create_dbConnection()
+    domainFound(conn)
     if args.title:
         valueArgs = ['all', 'empty']
         titleArgs = args.title.split(':')
@@ -445,8 +515,7 @@ def main():
         domainsList = filter(None, grabDomains(conn, program))
         if titleArgs[1] == 'all':
          for a in domainsList:
-            command = "curl %s -sL -m 5 | tac | tac | awk -vRS=\"</title>\" \'/<title>/{gsub(/.*<title>|"%(a)+r'\n'+"+/,\"\");print;exit}\'"
-            b = subprocess.check_output(command, shell=True)
+            b = grabWebTitle(a)
             ##Curl the domaim in 443 and 80 :',a
             if b:
                 print a+':'+b
@@ -561,6 +630,7 @@ def main():
             print 'Internet connect failed'
             exit()
         for a in domainsList:
+            grabWebDNS(a)
             try: 
                 cdns = []
                 b = socket.gethostbyname_ex(a)
