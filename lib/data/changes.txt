@@ -1,3 +1,0 @@
-bounties ; Grab_liveWebApp ; Domain^campaigns.myteksi.com , Research Only^False ; False ; GZ4Gk
-bounties ; Grab_liveWebApp ; Domain^newsletter.myteksi.com , Research Only^False ; False ; x9tsD
-bounties ; Grab_liveWebApp ; Domain^sendy.myteksi.com , Research Only^False ; False ; 7ZnVQ

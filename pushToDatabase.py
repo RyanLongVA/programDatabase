@@ -32,7 +32,7 @@ def findInOut(a, b):
             return item.split('^')[1]
 
 def domainFound(conn):
-    # subprocess.call('python '+scriptFolder+'/pushToDatabase.py -cc', shell=True)
+    subprocess.call('python '+scriptFolder+'/pushToDatabase.py -cc', shell=True)
     cur = conn.cursor()
     domainsList = []
     cfile = open(changesTXTFolder+'/changes.txt', 'r')
@@ -49,26 +49,48 @@ def domainFound(conn):
             nmapScan = nmapOnDomain(domain, 'normal') ##So far I'm just going to do a normal scan until I can dynamically fluctuate the nmap timeout
             domainTitle = grabWebTitle(domain)
             dnsData = grabWebDNS(domain)
-            b = []
-            c = []
-            b.append('`Domain`')
-            c.append('\"'+domain+'\"')
-            if nmapScan:
-                b.append('`Ports`')
-                c.append('\"'+nmapScan+'\"')
+            statementKeys = []
+            statementValues = []
+            textMessageFormat = []
+            statementKeys.append('`Domain`')
+            statementValues.append('\"'+domain+'\"')
+            textMessageFormat.append('\n'+'|Domain| '+domain)
             if domainTitle:
-                b.append('`Title`')
-                c.append('\"'+domainTitle+'\"')
+                statementKeys.append('`Title`')
+                statementValues.append('\"'+domainTitle+'\"')
+                textMessageFormat.append('|Title|'+domainTitle)
+            if nmapScan:
+                statementKeys.append('`Ports`')
+                statementValues.append('\"'+nmapScan+'\"')
+                textMessageFormat.append('|Ports|'+nmapScan)
             if dnsData:
-                b.append('`DNS`')
-                c.append('\"'+dnsData+'\"')
-            d = ', '.join(b)
-            e = ', '.join(c)
-            statem = "INSERT INTO "+program+"_liveWebApp(%s) VALUES (%s)"%(d, e)
-            print statem
+                statementKeys.append('`DNS`')
+                statementValues.append('\"'+dnsData+'\"')
+                textMessageFormat.append('|DNS|'+dnsData)
+            fullKeys = ', '.join(statementKeys)
+            fullValues = ', '.join(statementValues)
+            tempTextMessage = '\n'.join(textMessageFormat)
+
+            #Send text notification
+            msg = """From: %s
+            To: %s
+            Subject:
+            %s"""%(textEmail, textToAddress, tempTextMessage)
+            s = smtplib.SMTP('smtp.gmail.com', 587)
+            s.starttls()
+            s.login(textEmail, textEmailPassword)
+            s.sendmail(textEmail, textToAddress, msg)
+            s.quit()
             pdb.set_trace()
+            #Insert into table
+            statem = "INSERT INTO "+program+"_liveWebApp(%s) VALUES (%s)"%(fullKeys, fullValues)
             cur.execute(statem)
             conn.commit()
+            pdb.set_trace()
+    cfile = open(changesTXTFolder+'/changes.txt', 'w')
+    cfile.write('')
+    cfile.close
+
 
     ###Need to change text notification so the data that get's sent is after nmap/resolving/title grab, etc
 def removeByKey(providedKey):
@@ -234,7 +256,7 @@ def grabWebDNS(domain):
             print 'Failed: '+domain
         else: 
             print e
-            pdb.set_trace()
+            # pdb.set_trace()
                
 
 def cleanTempFolder():
@@ -499,7 +521,6 @@ def main():
     parser.add_argument('--printMe', help='"Program" Print all domains in database for program')
     args = parser.parse_args()
     conn = create_dbConnection()
-    domainFound(conn)
     if args.title:
         valueArgs = ['all', 'empty']
         titleArgs = args.title.split(':')
@@ -1129,8 +1150,7 @@ def main():
         #         checkLiveWebApp_Domains(conn, sys.argv[1]+'_liveWebApp', b)
 
     if args.s:
-        sendToDatabase(conn)
-
+        domainFound(conn)
 
     if args.t:
             subprocess.call('python '+textNotesFolder+'/textNotes.py text '+changesTXTFolder+'/changes.txt', shell=True)

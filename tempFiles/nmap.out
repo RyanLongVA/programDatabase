@@ -1,2 +1,0 @@
-# Nmap 7.60 scan initiated Thu Dec 28 20:39:39 2017 as: nmap -sS -oG /root/gitRepos/pushToDatabase_toGit/tempFiles/nmap.out campaigns.myteksi.com
-# Nmap done at Thu Dec 28 20:39:42 2017 -- 0 IP addresses (0 hosts up) scanned in 3.22 seconds
