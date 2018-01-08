@@ -51,10 +51,10 @@ def domainFound(conn):
             dnsData = grabWebDNS(domain)
             statementKeys = []
             statementValues = []
-            textMessageFormat = []
+            # textMessageFormat = []
             statementKeys.append('`Domain`')
             statementValues.append('\"'+domain+'\"')
-            textMessageFormat.append('\n'+'|Domain| '+domain)
+            # textMessageFormat.append('\n'+'|Domain| '+domain)
             if domainTitle:
                 statementKeys.append('`Title`')
                 statementValues.append('\"'+domainTitle+'\"')
@@ -62,31 +62,32 @@ def domainFound(conn):
             if nmapScan:
                 statementKeys.append('`Ports`')
                 statementValues.append('\"'+nmapScan+'\"')
-                textMessageFormat.append('|Ports|'+nmapScan)
+                # textMessageFormat.append('|Ports|'+nmapScan)
             if dnsData:
                 statementKeys.append('`DNS`')
                 statementValues.append('\"'+dnsData+'\"')
-                textMessageFormat.append('|DNS|'+dnsData)
+                # textMessageFormat.append('|DNS|'+dnsData)
             fullKeys = ', '.join(statementKeys)
             fullValues = ', '.join(statementValues)
-            tempTextMessage = '\n'.join(textMessageFormat)
+            # tempTextMessage = '\n'.join(textMessageFormat)
 
             #Send text notification
-            msg = """From: %s
-            To: %s
-            Subject:
-            %s"""%(textEmail, textToAddress, tempTextMessage)
-            s = smtplib.SMTP('smtp.gmail.com', 587)
-            s.starttls()
-            s.login(textEmail, textEmailPassword)
-            s.sendmail(textEmail, textToAddress, msg)
-            s.quit()
-            pdb.set_trace()
+            # msg = """From: %s
+            # To: %s
+            # Subject:
+            # %s"""%(textEmail, textToAddress, tempTextMessage)
+            # s = smtplib.SMTP('smtp.gmail.com', 587)
+            # s.starttls()
+            # s.login(textEmail, textEmailPassword)
+            # s.sendmail(textEmail, textToAddress, msg)
+            # s.quit()
             #Insert into table
-            statem = "INSERT INTO "+program+"_liveWebApp(%s) VALUES (%s)"%(fullKeys, fullValues)
-            cur.execute(statem)
-            conn.commit()
-            pdb.set_trace()
+            try:
+                statem = "INSERT INTO "+program+"_liveWebApp(%s) VALUES (%s)"%(fullKeys, fullValues)
+                cur.execute(statem)
+                conn.commit()
+            except:
+                pass
     cfile = open(changesTXTFolder+'/changes.txt', 'w')
     cfile.write('')
     cfile.close
@@ -200,10 +201,11 @@ def nmapOnDomain(domain, ports):
     #portDict['full']
     inputFile = tempFolder+'/nmap.out'
     print 'Starting Nmap on: \t',domain
-    startOutput = subprocess.call('nmap -sS -oG %s %s %s'%(inputFile, portDict[ports], domain), shell=True, stdout=FNULL)
+    startOutput = subprocess.call('nmap -sS -sV -oG %s %s %s'%(inputFile, portDict[ports], domain), shell=True, stdout=FNULL)
 
     nmapOut = subprocess.check_output(nmapFormatFolder+'/scanreport.sh -f %s'%(inputFile), shell=True)
     ports = []
+    # ports = nmapOut.split('\n')    
     for index, a in enumerate(nmapOut.split('\n')):
         if index != 0:
             tempArray = filter(None, a.split('\t\t'))
@@ -215,7 +217,7 @@ def nmapOnDomain(domain, ports):
                     tempArray2.append(b)
             tempArray = tempArray2
 
-            c = ' | '.join(tempArray).replace('\t', ' ')
+            c = ' :: '.join(tempArray).replace('\t', ' ')
             if c == '': 
                 print c
                 next
@@ -323,7 +325,7 @@ def callBrutesubs(a):
         ###and then deletes it
 
         # subprocess.call('cd '+brutesubsFolder+' && docker-compose down', shell=True)
-        #^^^ Stops the error, but also causes duplicates? Is it because of something close to a race condidtion?prit 
+        #^^^ Stops the error, but also causes duplicates? Is it because of something close to a race condidtion?
         subprocess.call("rm -rd "+brutesubsFolder+'/myoutdir/temp_out',shell=True)
         subprocess.call("cd "+brutesubsFolder+" && sh brutesubs.sh "+a+" temp_out", shell=True)
         ###Getting weird results because of rare system setups. One automatically CNAMES with any '-' in the domain to a '.'
@@ -495,7 +497,7 @@ def checkLiveWebApp_Domains(conn, tableName, domainArray, outScope):
 def main(): 
     parser = argparse.ArgumentParser(description='databaseActions')
     parser.add_argument('-ap', action='store_true', help='Add new program')
-    # parser.add_argument('-aos', help='"Program" Interface to add to out of scope' )
+    parser.add_argument('-aos', help='"Program" Interface to add to out of scope' )
     parser.add_argument('-ce', help='"Program Domain fileOfEndpoints" This will try to update the provided domain with any new endpoints found use `output >> ~/firstEndpointLocation` to update the list accordingly')
     parser.add_argument('-b', help='"Program" Search Using Brutesubs')
     parser.add_argument('-g', help='"Program File" Search Using Gobuster... Provide the program name, spaces and a file or directory ending in /')
@@ -517,10 +519,21 @@ def main():
     parser.add_argument('--startBrowsers', help='"Program", start enumerating through domains from a programs database')
     parser.add_argument('-p', action='store_true', help='purge changes.txt')
     parser.add_argument('-s', action='store_true', help='Send to database')
-    parser.add_argument('-e', help='"Program" Run EyeWitness')
+    parser.add_argument('-e', help='"Program" Print all domains')
+    parser.add_argument('-ep', help='"Program" Print all domains with ports')
     parser.add_argument('--printMe', help='"Program" Print all domains in database for program')
     args = parser.parse_args()
     conn = create_dbConnection()
+    if args.aos:
+        cur = conn.cursor()
+        cur.execute("SHOW TABLES;")
+        a = re.search(args.aos(args.aos+'_liveWebApp', str(cur.fetchall())))
+        if a:
+            print "Table Found!"
+        else:
+            print "Table Not Found!"
+        
+
     if args.title:
         valueArgs = ['all', 'empty']
         titleArgs = args.title.split(':')
@@ -600,7 +613,7 @@ def main():
         for a in domainsList:
             b.writelines(a +'\n')
         b.close()
-        subprocess.call('python'+textNotesFolder+'/textNotes.py '+tempFolder+'/email.temp', shell=True)
+        subprocess.call('python '+textNotesFolder+'/textNotes.py '+tempFolder+'/email.temp', shell=True)
         
         # subprocess.call('python /root/arsenal/personal/textNotes.py', shell=Tru
     
@@ -823,7 +836,7 @@ def main():
                 dnsLine = data[2]
                 endpointsFile = data[3]
                 nsLine = data[4]
-                ports = '\n\t'.join(data[5].split(' , '))
+                ports = '\n\t'.join(data[5].split(' :: '))
                 builtWith = data[6]
                 contentSecurityLine = data[7]
                 xframesLine = data[8]
@@ -851,7 +864,7 @@ def main():
                         print 'X-Frames-Options: '+xframesLine
                         print 'X-Xss-Protection: '+xssProtectionLine
                         print 'X-Content-Type-Options: '+contentTypeLine+'\n'
-                    prompt = returningStatuscode(raw_input('next(n)/info/nc {integer}/go {integer}/checkInt/goohak/virtualHost: '), domainListLength)
+                    prompt = returningStatuscode(raw_input('next(n)/info/nc {integer}/go {integer}/checkInt/goohak/virtualHost/Dirsearch (quick): '), domainListLength)
                     if prompt[0] == 0: 
                         ###Continue 
                         print(chr(27) + "[2J")
@@ -915,8 +928,9 @@ def main():
                         ##Start Virtual Host Discovery
                         ## a = theDomain
                         callVirtualHost(a, dnsLine) 
-
-
+                    # if prompt[0] = 7:
+                    #     ##Start dirsearch with large directory 
+                    #
                     if prompt[0] == -1:
                         print '[-] Provided: '+prompt[1]
                         print '[-] Format wasn\'t understandable --- e.g. nc 8080, info, next'
@@ -966,6 +980,19 @@ def main():
             domainList.append(str(a).split("'")[1])
         for a in domainList:
             print a 
+    if args.ep:
+        cur = conn.cursor()
+        program = args.ep
+        tempList = grabDomains(conn, program)
+        domainList = []
+        for a in tempList:
+            cur.execute('SELECT Ports FROM %s_liveWebApp WHERE `Domain` LIKE \'%s\''%(program, a))
+            cPorts = cur.fetchone()[0]
+            if cPorts:
+                domainList.append(a)
+        for a in domainList:
+            print a 
+
     if args.c:
         FNULL = open(os.devnull, 'w')
         cur = conn.cursor()
