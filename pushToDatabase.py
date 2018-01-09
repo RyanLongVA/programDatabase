@@ -1,5 +1,5 @@
 from __future__ import division
-import os, sys, MySQLdb, pdb, subprocess, re, random, string, argparse, smtplib, time, socket, dns.resolver
+import os, sys, MySQLdb, pdb, subprocess, re, random, string, argparse, smtplib, time, socket, dns.resolver, json
 from lib.modules import timeout
 from MySQLdb import Error
 from lib.modules.variables import *
@@ -319,6 +319,18 @@ def callVirtualHost(domain, dnsLine):
     os.system("gnome-terminal --working-directory=%s"%(virtualHostDiscoveryFolder))
     print 'Basic usage: ruby scan.rb --ip={IP ADDRESS} --host={TLD} (--port={port} >> When it\' not 80)'
 
+def callWhatWeb(domain, port):
+    try:
+        whatwebOut = subprocess.check_output('timeout 10s '+whatWebPath + '/whatweb -v %s:%s'%(domain,port), shell=True)
+        print whatwebOut
+        pdb.set_trace()
+        #Both timeouts and non-http ports will error out
+
+        #Just needs to return the formatted output ["StatusCode", "Summary", "Headers"]
+    except Exception,e:
+        pdb.set_trace()
+        return None
+    ##Should return None or ['statuscode', 'summary', 'headers']
 def callBrutesubs(a):
     try:
         ###I've changed the flow and now it reads the final results from the brutesubs folder
@@ -500,6 +512,7 @@ def main():
     parser.add_argument('-aos', help='"Program" Interface to add to out of scope' )
     parser.add_argument('-ce', help='"Program Domain fileOfEndpoints" This will try to update the provided domain with any new endpoints found use `output >> ~/firstEndpointLocation` to update the list accordingly')
     parser.add_argument('-b', help='"Program" Search Using Brutesubs')
+    parser.add_argument('--whatWeb', help='"Program" whatWeb on every sites port value')
     parser.add_argument('-g', help='"Program File" Search Using Gobuster... Provide the program name, spaces and a file or directory ending in /')
     parser.add_argument('-dl', help='"Program File" File of domains to database')
     parser.add_argument('-c', help='"Program" Attempt to find new domains based on the other domains Certs')
@@ -524,6 +537,55 @@ def main():
     parser.add_argument('--printMe', help='"Program" Print all domains in database for program')
     args = parser.parse_args()
     conn = create_dbConnection()
+    if args.whatWeb:
+        try: 
+            socket.gethostbyname('google.com')
+        except:
+            print 'Internet connect failed'
+            exit()
+        program = args.whatWeb
+        cur = conn.cursor()
+        cur.execute('SELECT DISTINCT Domain, Ports FROM %s_liveWebApp'%(program))
+        domainsSQL = cur.fetchall()
+        domainsList = []
+        for sqlValue in domainsSQL:
+            domain = sqlValue[0]
+            portsData = sqlValue[1]
+            if portsData == None or portsData == '':
+                domainsList.append(domain)
+                continue
+            else:
+                domainAndPorts = [domain]
+                for cport in portsData.split(' , '):
+                    try:
+                        domainAndPorts.append(cport.split()[0])
+                    except Exception,e:
+                        pdb.set_trace()
+                domainsList.append(domainAndPorts)
+                ##Should be [domain, port, port]
+        for domain in domainsList:
+            if len(domain)>1:
+                webPortDict = []
+                cDomain = domain[0]
+                iterPorts = iter(domain)
+                next(iterPorts)
+                for port in iterPorts:
+                    portWebResponse = callWhatWeb(cDomain, port)
+                    if portWebResponse == None:
+                        continue
+                    else:
+                        webPortDict[port] = portWebResponse
+                
+                webPortJSON = json.dumps(webPortDict)
+                print webPortJSON
+                pdb.set_trace()
+                if webPortJSON == '[]':
+                    continue
+                else:
+                    cur.execute('UPDATE %s_liveWebApp SET `Ports` = \"'%(program)+webPortJSON+'\" WHERE `Domain` LIKE \'%s\''%(domain))
+                    conn.commit()
+                #Only if it has a port open do we update
+                #cur.execute('UPDATE... ') >> So we won't have to wait for the whole cycle
     if args.aos:
         cur = conn.cursor()
         cur.execute("SHOW TABLES;")
