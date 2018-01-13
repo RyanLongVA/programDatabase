@@ -321,16 +321,60 @@ def callVirtualHost(domain, dnsLine):
 
 def callWhatWeb(domain, port):
     try:
-        whatwebOut = subprocess.check_output('timeout 10s '+whatWebPath + '/whatweb -v %s:%s'%(domain,port), shell=True)
-        print whatwebOut
-        pdb.set_trace()
+        whatwebOut = subprocess.check_output(whatWebPath + '/whatweb --color=NEVER -v %s:%s'%(domain,port), shell=True)
+        foundStatus = False
+        statuscode = ''
+        foundSummary = False
+        summary = ''
+        foundHeaderBegin = False
+        foundHeaders = []
+        foundHeaderEnd = False
+        for line in whatwebOut.split('\n'):
+            #Need to go through line by line and see why the .startswith() are turning false
+            if not foundStatus:
+                if line.startswith('Status'):
+                    statuscode = line.split(' : ')[1].replace("\"", "").replace("\'", "")
+                    foundStatus = True
+                    continue
+                else: 
+                    continue
+            if not foundSummary:
+                if line.startswith('Summary'):
+                    summary = line.split(' : ')[1].replace("'", "").replace('\"', '')
+                    foundSummary = True
+                    continue
+                else:
+                    continue
+            if not foundHeaderBegin:
+                if line.startswith('HTTP Headers:'):
+                    foundHeaderBegin = True
+                    continue
+                else:
+                    continue
+            if line == '\t':
+                foundHeaderEnd = True
+            if not foundHeaderEnd:
+                line2 = line.replace("\"", '').replace("'", "")
+                foundHeaders.append(line2)
+        foundHeaders = filter(None, foundHeaders)
+        foundHeaders2 = []
+        for cheader in foundHeaders:
+            foundHeaders2.append(cheader.strip())
+        foundHeaders = filter(None, foundHeaders2)
+
+        fullOutput = [statuscode, summary, foundHeaders]
+        # pdb.set_trace()
+        return fullOutput
         #Both timeouts and non-http ports will error out
 
         #Just needs to return the formatted output ["StatusCode", "Summary", "Headers"]
     except Exception,e:
-        pdb.set_trace()
+        print e
+        if 'bad URI' in str(e):
+            pdb.set_trace()
         return None
     ##Should return None or ['statuscode', 'summary', 'headers']
+
 def callBrutesubs(a):
     try:
         ###I've changed the flow and now it reads the final results from the brutesubs folder
@@ -375,7 +419,7 @@ def returningStatuscode(prompt, domainListLength):
         a.append(3)
     elif prompt.startswith('go '):
         try: 
-            ### Same concept as for startsWith('nc ')
+            ### Same concept as for startswith('nc ')
             value = int(prompt[3:])
             if value > domainListLength-1:
                 raise ValueError('[-] The Value(%s) was bigger than the domain list(%s)'%(value, domainListLength-1))
@@ -551,8 +595,8 @@ def main():
         for sqlValue in domainsSQL:
             domain = sqlValue[0]
             portsData = sqlValue[1]
-            if portsData == None or portsData == '':
-                domainsList.append(domain)
+            if portsData == None or portsData.strip() == '':
+                domainsList.append([domain])
                 continue
             else:
                 domainAndPorts = [domain]
@@ -560,30 +604,36 @@ def main():
                     try:
                         domainAndPorts.append(cport.split()[0])
                     except Exception,e:
-                        pdb.set_trace()
+                        print e
+                        # pdb.set_trace()
                 domainsList.append(domainAndPorts)
                 ##Should be [domain, port, port]
         for domain in domainsList:
             if len(domain)>1:
-                webPortDict = []
+                webPortDict = {}
                 cDomain = domain[0]
                 iterPorts = iter(domain)
                 next(iterPorts)
                 for port in iterPorts:
                     portWebResponse = callWhatWeb(cDomain, port)
-                    if portWebResponse == None:
+                    if filter(None, portWebResponse) == []:
                         continue
                     else:
                         webPortDict[port] = portWebResponse
-                
+                # pdb.set_trace()
                 webPortJSON = json.dumps(webPortDict)
-                print webPortJSON
-                pdb.set_trace()
+                # pdb.set_trace()
                 if webPortJSON == '[]':
                     continue
                 else:
-                    cur.execute('UPDATE %s_liveWebApp SET `Ports` = \"'%(program)+webPortJSON+'\" WHERE `Domain` LIKE \'%s\''%(domain))
-                    conn.commit()
+                    try: 
+                        statem = 'UPDATE %s_liveWebApp SET `BuiltWith` = \''%(program)+webPortJSON+'\' WHERE `Domain` LIKE \'%s\''%(cDomain)
+                        cur.execute(statem)
+                        conn.commit()
+                        print cDomain,': updated'
+                    except Exception,e:
+                        print e 
+                        pdb.set_trace()
                 #Only if it has a port open do we update
                 #cur.execute('UPDATE... ') >> So we won't have to wait for the whole cycle
     if args.aos:
@@ -870,7 +920,6 @@ def main():
 
 
     if args.startBrowsers: 
-        print '*****WARNING: firefoxDevAddition should be opened before running this*****'
         cur = conn.cursor()
         program = args.startBrowsers
         tempList = grabDomains(conn, program)
@@ -899,7 +948,7 @@ def main():
                 endpointsFile = data[3]
                 nsLine = data[4]
                 ports = '\n\t'.join(data[5].split(' :: '))
-                builtWith = data[6]
+                builtWith = json.loads(data[6])
                 contentSecurityLine = data[7]
                 xframesLine = data[8]
                 xssProtectionLine = data[9]
@@ -910,8 +959,8 @@ def main():
                 while True:
                     if openWindow:
                         openWindow = False
-                        subprocess.call(browserFile+' http://' + a, shell=True)
-                        subprocess.call(browserFile+' https://' + a, shell=True)
+                        # subprocess.call(browserFile+' http://' + a, shell=True)
+                        # subprocess.call(browserFile+' https://' + a, shell=True)
                     if infoPrint:
                         infoPrint = False
                         print '%s/%s'%(count,domainListLength-1)
@@ -921,11 +970,21 @@ def main():
                         print 'DNS: '+dnsLine
                         print 'NS: '+nsLine
                         print 'Ports: '+ports
-                        print 'Built-With: '+builtWith
+                        print 'Built-With:'
+                        for data in builtWith:
+                            print '\tPort:'+data
+                            print builtWith[data][1]
                         print 'Content-Security-Policy: '+contentSecurityLine
                         print 'X-Frames-Options: '+xframesLine
                         print 'X-Xss-Protection: '+xssProtectionLine
                         print 'X-Content-Type-Options: '+contentTypeLine+'\n'
+                        print 'Headers:'
+                        for data in builtWith:
+                            print '\t Port:'+data
+                            for header in builtWith[data][2]:
+                                print '\t\t'+header
+                        print ''
+
                     prompt = returningStatuscode(raw_input('next(n)/info/nc {integer}/go {integer}/checkInt/goohak/virtualHost/Dirsearch (quick): '), domainListLength)
                     if prompt[0] == 0: 
                         ###Continue 
