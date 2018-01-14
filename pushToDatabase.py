@@ -321,7 +321,12 @@ def callVirtualHost(domain, dnsLine):
 
 def callWhatWeb(domain, port):
     try:
-        whatwebOut = subprocess.check_output(whatWebPath + '/whatweb --color=NEVER -v %s:%s'%(domain,port), shell=True)
+        if port == '80':
+            whatwebOut = subprocess.check_output(whatWebPath + '/whatweb --color=NEVER -v %s'%('http://'+domain), shell=True)
+        elif port == '443':
+            whatwebOut = subprocess.check_output(whatWebPath + '/whatweb --color=NEVER -v %s'%('http://'+domain), shell=True)
+        else:
+            return None
         foundStatus = False
         statuscode = ''
         foundSummary = False
