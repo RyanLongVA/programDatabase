@@ -58,7 +58,7 @@ def domainFound(conn):
             if domainTitle:
                 statementKeys.append('`Title`')
                 statementValues.append('\"'+domainTitle+'\"')
-                textMessageFormat.append('|Title|'+domainTitle)
+                # textMessageFormat.append('|Title|'+domainTitle)
             if nmapScan:
                 statementKeys.append('`Ports`')
                 statementValues.append('\"'+nmapScan+'\"')
@@ -467,7 +467,7 @@ def checkLiveWebApp(conn, tableName):
 def callGobuster(domain, wordlistPath):
     try:
         test = "gobuster -fw -m dns -u "+domain+" -t 100 -w "+wordlistPath+" | sed -n -e 's/^Found: //p' > "+tempFolder+'/gobuster.temp'
-        subprocess.call("gobuster -m dns -u "+domain+" -t 100 -w "+wordlistPath+" | sed -n -e 's/^Found: //p' > "+tempFolder+'/gobuster.temp', shell=True)
+        subprocess.call(test, shell=True)
         # Because of some weird CNAME results
         #if (a == 'algolia.net'):
             #subprocess.call("grep -v '-' ~/arsenal/tempFiles/gobuster.temp > ~/arsenal/tempFiles/gobuster.temp2", shell=True)
@@ -476,9 +476,11 @@ def callGobuster(domain, wordlistPath):
         b = subprocess.check_output('cat '+tempFolder+'/gobuster.temp', shell=True)
         c = filter(None, b.split('\n'))
         #check what the out of c is... should be a array of new domains
-        pdb
+        pdb.set_trace()
         return c
     except Exception, e:
+        print 'Something went wrong with Gobuster'
+        pdb.set_trace()
         print e
 
 def mainGobuster(program, filename, conn):
@@ -518,6 +520,7 @@ def returnChangesDomains():
     return domains
 
 def checkLiveWebApp_Domains(conn, tableName, domainArray, outScope):
+    ## Revamp // Output is successfully filtered of outScope
     try:
         domainArray = filter(None, domainArray)
     except:
@@ -529,17 +532,22 @@ def checkLiveWebApp_Domains(conn, tableName, domainArray, outScope):
     changesDomains = returnChangesDomains()
     
     for b in outScope:
+        #Check outScope value
+
         ###cleaning up output and removing things that are out of scope
         ###used to be a boolean, but it was changed because I do not care for repetitive Code
         if (b[:2] == '*.'):
             b = b[2:]
             for integer, c in reversed(list(enumerate(a))):
-                if b in c:
+                # pdb.set_trace() 
+                if c.find(c) != -1:
                     a.pop(integer)
         else:
             for integer, c in reversed(list(enumerate(a))):
                 if c == b:
                     a.pop(integer)
+    return a 
+
 
     cfile = open(changesTXTFolder+'/changes.txt', 'a')
     for b in a:
@@ -1271,7 +1279,6 @@ def main():
                 mainGobuster(program, bruteList, conn)
 
     if args.b:
-
         inScope = select_webAppFromPrograms(conn, True, args.b)
         outScope = select_webAppFromPrograms(conn, False, args.b)
         checkLiveWebApp(conn, args.b+'_liveWebApp')
@@ -1281,7 +1288,8 @@ def main():
             if (a[:2] == '*.'):
                 a = a[2:]
                 b = callBrutesubs(a)
-                # b = 'test'
+                # Return a array of domains
+                b = ['calgate1.cal.vip.ne1.yahoo.com']
                 ## eventually add a dig dig cert call 
                 checkLiveWebApp_Domains(conn, args.b+'_liveWebApp', b, outScope)
             else:
