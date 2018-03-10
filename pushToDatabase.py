@@ -25,6 +25,18 @@ def create_dbConnection():
         print(e)
     return None
 
+def sqlExeCommit(conn, statem):
+    #Only need conn
+    cur = conn.cursor()
+    cur.execute(statem)
+    conn.commit()
+
+def sqlCommit(conn):
+    conn.commit()
+
+def sqlExe(cur, statem):
+    cur.execute(statem)
+
 def findInOut(a, b):
     ###Returns one of the values with a ^ symbol. Picked/supplied by the b parameter (still needs to end in '^' e.g. 'Domain^')
     for item in a.split(' ; ')[2].split(' , '):
@@ -84,8 +96,7 @@ def domainFound(conn):
             #Insert into table
             try:
                 statem = "INSERT INTO "+program+"_liveWebApp(%s) VALUES (%s)"%(fullKeys, fullValues)
-                cur.execute(statem)
-                conn.commit()
+                sqlExeCommit(conn, statem)
             except:
                 pass
     cfile = open(changesTXTFolder+'/changes.txt', 'w')
@@ -161,10 +172,11 @@ def sendToDatabase(conn):
             fvalues = ', '.join(values)
             statem = 'INSERT INTO '+table+'('+fcolumn+') VALUES ('+fvalues+')'
             try:
-                cur.execute(statem)
+                sqlExe(cur, statem)
             except Exception as e:
                 pass
-        conn.commit()
+        sqlCommit(conn)
+        # Clearing changes after sending values
         cfile = open(changesTXTFolder+'/changes.txt', 'w')
         cfile.write('')
         cfile.close
@@ -207,6 +219,7 @@ def nmapOnDomain(domain, ports):
     ports = []
     # ports = nmapOut.split('\n')    
     for index, a in enumerate(nmapOut.split('\n')):
+        pdb.set_trace()
         if index != 0:
             tempArray = filter(None, a.split('\t\t'))
             tempArray2 = []
@@ -380,6 +393,8 @@ def callWhatWeb(domain, port):
         return None
     ##Should return None or ['statuscode', 'summary', 'headers']
 
+
+@timeout.timeout(20000)
 def callBrutesubs(a):
     try:
         ###I've changed the flow and now it reads the final results from the brutesubs folder
@@ -458,6 +473,7 @@ def checkLiveWebApp(conn, tableName):
             cur.execute("SELECT `Tables` FROM programs WHERE `Name`=\'"+sys.argv[1]+"\'")
             startName = cur.fetchone()[0]
             cur.execute("UPDATE `programs` SET `Tables` = \'"+startname+' , '+tableName+"\' WHERE `Name` LIKE \'"+sys.argv[1]+'\'')
+            ####### Table tab isn't updating 
             conn.commit()
         except:
             pass
@@ -546,8 +562,6 @@ def checkLiveWebApp_Domains(conn, tableName, domainArray, outScope):
             for integer, c in reversed(list(enumerate(a))):
                 if c == b:
                     a.pop(integer)
-    return a 
-
 
     cfile = open(changesTXTFolder+'/changes.txt', 'a')
     for b in a:
@@ -641,8 +655,7 @@ def main():
                 else:
                     try: 
                         statem = 'UPDATE %s_liveWebApp SET `BuiltWith` = \''%(program)+webPortJSON+'\' WHERE `Domain` LIKE \'%s\''%(cDomain)
-                        cur.execute(statem)
-                        conn.commit()
+                        sqlExeCommit(conn, statem)
                         print cDomain,': updated'
                     except Exception,e:
                         print e 
@@ -675,11 +688,11 @@ def main():
         if titleArgs[1] == 'all':
          for a in domainsList:
             b = grabWebTitle(a)
-            ##Curl the domaim in 443 and 80 :',a
+            ##Curl the domain in 443 and 80 :',a
             if b:
                 print a+':'+b
-                cur.execute('UPDATE %s_liveWebApp SET `Title` = \"'%(program)+b+'\" WHERE `Domain` LIKE \'%s\''%(a))
-                conn.commit()
+                statem = 'UPDATE %s_liveWebApp SET `Title` = \"'%(program)+b+'\" WHERE `Domain` LIKE \'%s\''%(a)
+                sqlExeCommit(conn, statem)
         elif titleArgs[1] == 'empty':
             emptyDomains = [] 
             for a in domainsList:
@@ -692,8 +705,8 @@ def main():
                 b = subprocess.check_output(command, shell=True).strip()
                 if b:
                     print a+':'+b
-                    cur.execute('UPDATE %s_liveWebApp SET `Title` = \"'%(program)+b+'\" WHERE `Domain` LIKE \'%s\''%(a))
-                    conn.commit()
+                    statem = 'UPDATE %s_liveWebApp SET `Title` = \"'%(program)+b+'\" WHERE `Domain` LIKE \'%s\''%(a)
+                    sqlExeCommit(conn, statem)
             #Grab only of the value null 
     if args.cc:
         domainsList2 = []
@@ -809,8 +822,8 @@ def main():
                         d.append(c)
                     cdns.append(' , '.join(d))
                 data = ' : '.join(cdns)
-                cur.execute('UPDATE %s_liveWebApp SET `DNS` = \"'%(args.dns)+data+'\" WHERE `Domain` LIKE \'%s\''%(a))
-                conn.commit()
+                statem = 'UPDATE %s_liveWebApp SET `DNS` = \"'%(args.dns)+data+'\" WHERE `Domain` LIKE \'%s\''%(a)
+                sqlExeCommit(conn, statem)
             except Exception,e:
                 if e[0] == -2:
                     fails.append(a)
@@ -827,8 +840,8 @@ def main():
                 for i in g:
                     h.append(str(i)[:-1])
                 j = ' , '.join(h)
-                cur.execute('UPDATE %s_liveWebApp SET `NS` = \"'%(args.dns)+j+'\" WHERE `Domain` LIKE \'%s\''%(a))
-                conn.commit()
+                statem = 'UPDATE %s_liveWebApp SET `NS` = \"'%(args.dns)+j+'\" WHERE `Domain` LIKE \'%s\''%(a)
+                sqlExeCommit(conn, statem)
                 #NS resolving
             except Exception,e:
                 pass
@@ -840,8 +853,8 @@ def main():
         platform = raw_input("Platform: ").strip()
         inScope = raw_input("In Scope Domains(*.test.com, test2.com): ").strip()
         outScope = raw_input("Out of Scope Domains(test.com, test2.com): ").strip()
-        cur.execute("INSERT INTO programs(`Name`, `Platform`, `In Scope Domains`, `Out of Scope Domains`) VALUES (\'%s\',\'%s\',\'%s\',\'%s\')"%(program, platform, inScope, outScope))
-        conn.commit()
+        statem = "INSERT INTO programs(`Name`, `Platform`, `In Scope Domains`, `Out of Scope Domains`) VALUES (\'%s\',\'%s\',\'%s\',\'%s\')"%(program, platform, inScope, outScope)
+        sqlExeCommit(conn, statem)
 
     if args.cd:
         cur = conn.cursor()
@@ -889,10 +902,11 @@ def main():
                     print "Input was not understood"
         for a in fails1:
             try:
-                cur.execute('DELETE FROM '+'`'+args.cd+'_liveWebApp'+'`'+'WHERE `Domain` = \''+a+'\'')
+                statem = 'DELETE FROM '+'`'+args.cd+'_liveWebApp'+'`'+'WHERE `Domain` = \''+a+'\''
+                sqlExe(cur, statem)
             except Exception,e:
                 print 'Failed?\n\n'+str(e)
-        conn.commit()
+        sqlCommit(conn)
         
         domainsList2 = []
         fails2 = []
@@ -1080,7 +1094,8 @@ def main():
             with open(args.dl.split()[1]) as file:
                 for line in file:
                     try:
-                        cur.execute("INSERT INTO "+program+"_liveWebApp(`Domain`, `Research Only`) VALUES ('"+line[:-1]+"','False')")
+                        statem = "INSERT INTO "+program+"_liveWebApp(`Domain`, `Research Only`) VALUES ('"+line[:-1]+"','False')"
+                        sqlExe(cur, statem)
                     except Exception,e:
                         pass
             conn.commit()
@@ -1289,7 +1304,6 @@ def main():
                 a = a[2:]
                 b = callBrutesubs(a)
                 # Return a array of domains
-                b = ['calgate1.cal.vip.ne1.yahoo.com']
                 ## eventually add a dig dig cert call 
                 checkLiveWebApp_Domains(conn, args.b+'_liveWebApp', b, outScope)
             else:
