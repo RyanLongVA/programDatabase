@@ -1,0 +1,39 @@
+
+Starting Nmap 7.60 ( https://nmap.org ) at 2018-04-02 18:07 EDT
+Nmap scan report for vrrp1.et-0-3-1-995.ccr.snv.corp.yahoo.com (209.131.62.1)
+Host is up (0.068s latency).
+Nmap scan report for et-0-3-1-995.ccr1.snv.corp.yahoo.com (209.131.62.2)
+Host is up (0.078s latency).
+Nmap scan report for et-0-3-1-995.ccr2.snv.corp.yahoo.com (209.131.62.3)
+Host is up (0.077s latency).
+Nmap scan report for re-0.cfw1-a-gci.corp.yahoo.com (209.131.62.4)
+Host is up (0.078s latency).
+Nmap scan report for gi-0-0.cwr1-1-ptn.corp.yahoo.com (209.131.62.37)
+Host is up (0.076s latency).
+Nmap scan report for gi-0-0.cwr2-1-ptn.corp.yahoo.com (209.131.62.38)
+Host is up (0.075s latency).
+Nmap scan report for reth0.cfw-a-lab.corp.yahoo.com (209.131.62.51)
+Host is up (0.076s latency).
+Nmap scan report for ae0-991.ccr1.snv.corp.yahoo.com (209.131.62.64)
+Host is up (0.17s latency).
+Nmap scan report for ae0-991.ccr2.snv.corp.yahoo.com (209.131.62.65)
+Host is up (0.077s latency).
+Nmap scan report for ha1.xe-0-0-1-997.ccr.snv.corp.yahoo.com (209.131.62.225)
+Host is up (0.079s latency).
+Nmap scan report for xe-0-0-1-997.ccr1.snv.corp.yahoo.com (209.131.62.226)
+Host is up (0.078s latency).
+Nmap scan report for xe-0-0-1-997.ccr2.snv.corp.yahoo.com (209.131.62.227)
+Host is up (0.14s latency).
+Nmap scan report for vpn1-2-gci.sv6.corp.yahoo.com (209.131.62.228)
+Host is up (0.087s latency).
+Nmap scan report for vpn2-2-gci.sv6.corp.yahoo.com (209.131.62.229)
+Host is up (0.077s latency).
+Nmap scan report for vpn-2-gci.sv6.corp.yahoo.com (209.131.62.230)
+Host is up (0.089s latency).
+Nmap scan report for vpn1-1-gci.sv6.corp.yahoo.com (209.131.62.231)
+Host is up (0.089s latency).
+Nmap scan report for lo2.cwr1-1-ptn.corp.yahoo.com (209.131.62.250)
+Host is up (0.075s latency).
+Nmap scan report for lo2.cwr2-1-ptn.corp.yahoo.com (209.131.62.251)
+Host is up (0.16s latency).
+Nmap done: 256 IP addresses (18 hosts up) scanned in 20.60 seconds

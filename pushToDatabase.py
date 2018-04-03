@@ -204,7 +204,7 @@ def removeBasedOnPattern(pattern, program):
     with open(changesTXTFolder+'/changes.txt', 'w') as file:
         file.writelines(keep)
 
-@timeout.timeout(800)
+@timeout.timeout(1000)
 def nmapOnDomain(domain, ports):
     #nmap -sS -A example.com --> faster tcp with OS Grepping
     #nmap -sU example.com --> UDP ports
@@ -479,7 +479,6 @@ def checkLiveWebApp(conn, tableName):
             pass
     # Seems tables are automatically saved i.e. don't need to be .commit()'d 
 
-@timeout.timeout(10000)
 def callGobuster(domain, wordlistPath):
     try:
         test = "gobuster -fw -m dns -u "+domain+" -t 100 -w "+wordlistPath+" | sed -n -e 's/^Found: //p' > "+tempFolder+'/gobuster.temp'
@@ -492,7 +491,6 @@ def callGobuster(domain, wordlistPath):
         b = subprocess.check_output('cat '+tempFolder+'/gobuster.temp', shell=True)
         c = filter(None, b.split('\n'))
         #check what the out of c is... should be a array of new domains
-        pdb.set_trace()
         return c
     except Exception, e:
         print 'Something went wrong with Gobuster'
@@ -608,6 +606,64 @@ def main():
     parser.add_argument('--printMe', help='"Program" Print all domains in database for program')
     args = parser.parse_args()
     conn = create_dbConnection()
+
+    cur = conn.cursor()
+    cur.execute('SELECT Domain FROM Yahoo_liveWebApp') 
+    domainsSQL = list(cur.fetchall())
+    domainList = []
+
+    def returnJSON(cPorts):
+        if c.Ports startswith('{'):
+            return None
+        elif cPorts == None:
+            return None
+        else: 
+            #Define JSONData 
+            JSONData = {}
+            portsArray = cPorts.split(' , ')
+            for b in portsArray: 
+                portData = b.split()
+                #Check the status of the port
+                if portStatus != 'open':
+                    return None
+                portNumber = portData[0]
+                #Check if port number is int type
+                if not isinstance(portNumber, int):
+                    return None
+                portStatus = portData[1]
+                #Port socket type
+                portType = portData[2]
+                portFingerprint = b.split(' :: ')[1]
+                JSONData[portNumber] = [portType, portFingerprint]
+            pdb.set_trace()
+            return JSONData
+
+
+
+    for a in domainsSQL:
+        # a = re.findall(r"['](.*?)[']", str(x))
+        domainList.append(str(a).split("'")[1])
+    for a in domainList:
+
+        cur.execute('SELECT `Ports` FROM Yahoo_liveWebApp WHERE `Domain` LIKE \'%s\''%(a))
+        cPorts = cur.fetchone()[0]
+        returnJSON
+        elif cPorts != None:
+            #Define JSON data
+            portsArray = cPorts.split(' , ')
+            for b in portsArray:
+                portData = b.split('')
+                ##Port number and checking if int
+                portNumber = b.split[0]
+                if not isinstance(portNumber, int):
+                    
+
+
+            pdb.set_trace()
+        else:
+            continue
+
+
     if args.whatWeb:
         try: 
             socket.gethostbyname('google.com')
@@ -1138,7 +1194,7 @@ def main():
             cur.execute('SELECT Ports FROM %s_liveWebApp WHERE `Domain` LIKE \'%s\''%(program, a))
             cPorts = cur.fetchone()[0]
             if cPorts:
-                domainList.append(a)
+                domainList.append(a+":"+cPorts)
         for a in domainList:
             print a 
 
@@ -1171,8 +1227,6 @@ def main():
                         pass
 
 
-
-
     if args.n:
         portArgs = ['full', 'normal', 'fast', 'simple']
         valueArgs = ['all', 'empty']
@@ -1190,7 +1244,7 @@ def main():
             print '\nThe Current Value argument was not understandable... "All", "Empty"'
             exit()
         currentValue = a[3].lower() 
-        ### Setup Done
+        ### Checking input
         ### Begin 
         cur = conn.cursor()
         cur.execute('SELECT Domain FROM %s_liveWebApp'%(program)) 
@@ -1223,9 +1277,15 @@ def main():
         
 
         # nmapOnDomain(conn, program, domain, currentValue);
+    if args.nr:
+        # -sP on domains :: problem with ranges giving a variable range for the response
+        # take the domains and check which ones are inscope, then log the outscope variables 
+        print 'test'
+
     if args.r:
         with open(changesTXTFolder+'/changes.txt', 'r') as file:
             print file.readlines()
+
     if args.rk:
         if len(args.rk) != 5:
             print "\n 5 Character key not provided"
@@ -1279,7 +1339,7 @@ def main():
 
     if args.g:
         if len(args.g.split()) != 2:
-            print '"File(Or directory) Program" is the format'
+            print '"Program File(Or directory)" is the format'
             exit()
         else:
             program = args.g.split()[0]
