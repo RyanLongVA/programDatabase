@@ -607,61 +607,60 @@ def main():
     args = parser.parse_args()
     conn = create_dbConnection()
 
-    cur = conn.cursor()
-    cur.execute('SELECT Domain FROM Yahoo_liveWebApp') 
-    domainsSQL = list(cur.fetchall())
-    domainList = []
+    #Functional code that shouldn't be run again... it'll take all the json starting with '{' and return None // deleting all the ports data'
 
-    def returnJSON(cPorts):
-        if c.Ports startswith('{'):
-            return None
-        elif cPorts == None:
-            return None
-        else: 
-            #Define JSONData 
-            JSONData = {}
-            portsArray = cPorts.split(' , ')
-            for b in portsArray: 
-                portData = b.split()
-                #Check the status of the port
-                if portStatus != 'open':
-                    return None
-                portNumber = portData[0]
-                #Check if port number is int type
-                if not isinstance(portNumber, int):
-                    return None
-                portStatus = portData[1]
-                #Port socket type
-                portType = portData[2]
-                portFingerprint = b.split(' :: ')[1]
-                JSONData[portNumber] = [portType, portFingerprint]
-            pdb.set_trace()
-            return JSONData
+    # cur = conn.cursor()
+    # cur.execute('SELECT Domain FROM Yahoo_liveWebApp') 
+    # domainsSQL = list(cur.fetchall())
+    # domainList = []
 
-
-
-    for a in domainsSQL:
-        # a = re.findall(r"['](.*?)[']", str(x))
-        domainList.append(str(a).split("'")[1])
-    for a in domainList:
-
-        cur.execute('SELECT `Ports` FROM Yahoo_liveWebApp WHERE `Domain` LIKE \'%s\''%(a))
-        cPorts = cur.fetchone()[0]
-        returnJSON
-        elif cPorts != None:
-            #Define JSON data
-            portsArray = cPorts.split(' , ')
-            for b in portsArray:
-                portData = b.split('')
-                ##Port number and checking if int
-                portNumber = b.split[0]
-                if not isinstance(portNumber, int):
-                    
+    # def returnJSON(cPorts):
+    #     JSONData = {}
+    #     #Null in the database
+    #     if cPorts == None:
+    #         return JSONData
+    #     #Empty string 
+    #     elif cPorts.strip() == '':
+    #         return JSONData
+    #     elif cPorts.startswith('{'):
+    #         return JSONData
+    #     else: 
+    #         #Define JSONData 
+    #         portsArray = cPorts.split(' , ')
+    #         for b in portsArray: 
+    #             try:
+    #                 portData = b.split()
+    #                 #Check the status of the port
+    #                 portStatus = portData[1]
+    #                 if portStatus != 'open':
+    #                     continue
+    #                 portNumber = portData[0]
+    #                 #Check if port number is int type
+    #                 if not isinstance(int(portNumber), int):
+    #                     continue
+    #                 #Port socket type
+    #                 portType = portData[2]
+    #                 portFingerprint = b.split(' :: ')[1]
+    #                 JSONData[portNumber] = [portType, portFingerprint]
+    #             except Exception,e:
+    #                 pdb.set_trace()
+    #         return JSONData
 
 
-            pdb.set_trace()
-        else:
-            continue
+
+    # for a in domainsSQL:
+    #     # a = re.findall(r"['](.*?)[']", str(x))
+    #     domainList.append(str(a).split("'")[1])
+    # for a in domainList:
+
+    #     cur.execute('SELECT `Ports` FROM Yahoo_liveWebApp WHERE `Domain` LIKE \'%s\''%(a))
+    #     cPorts = cur.fetchone()[0]
+    #     if cPorts == None:
+    #         cPorts = '{}'
+    #     JSONData = returnJSON(cPorts)
+    #     ##Here wouldbe a check for new/changed ports
+    #     statem = 'UPDATE Yahoo_liveWebApp SET `Ports` = \''+json.dumps(JSONData)+'\' WHERE `Domain` LIKE \'%s\''%(a)
+    #     sqlExeCommit(conn, statem)
 
 
     if args.whatWeb:
@@ -1276,11 +1275,11 @@ def main():
                 next
         
 
-        # nmapOnDomain(conn, program, domain, currentValue);
-    if args.nr:
-        # -sP on domains :: problem with ranges giving a variable range for the response
-        # take the domains and check which ones are inscope, then log the outscope variables 
-        print 'test'
+    #     # nmapOnDomain(conn, program, domain, currentValue);
+    # if args.nr:
+    #     # -sP on domains :: problem with ranges giving a variable range for the response
+    #     # take the domains and check which ones are inscope, then log the outscope variables 
+    #     print 'test'
 
     if args.r:
         with open(changesTXTFolder+'/changes.txt', 'r') as file:
